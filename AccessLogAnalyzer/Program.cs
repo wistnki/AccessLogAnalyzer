@@ -11,9 +11,12 @@ namespace AccessLogAnalyzer
         static void Main(string[] args)
         {
             var parser = new LogParser();
-            parser.Parse(args[0], new DateTime(2005, 4, 18), new DateTime(2005, 4, 20));
-            parser.OutputSummaryByHour(args[1]);
-            parser.OutputSummaryByHost(args[2]);
+            for (int i = 2; i < args.Length; i++)
+                parser.Parse(args[i]);
+
+            parser.OutputSummaryByHour(args[0]);
+            parser.OutputSummaryByHost(args[1]);
+
         }
     }
 }
