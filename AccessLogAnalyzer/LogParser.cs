@@ -27,12 +27,18 @@ namespace AccessLogAnalyzer
         /// このメソッドをファイルごとに呼び出します。
         /// </summary>
         /// <param name="path">ログファイルのパス</param>
-        public void Parse(string path)
+        /// <param name="periodStart">集計対象の期間の最初の日</param>
+        /// <param name="periodEnd">集計対象の期間の最後の日</param>
+        public void Parse(string path, DateTime? periodStart = null, DateTime? periodEnd = null)
         {
             const string logPattern = @"(.*?)\s.*?\s\[(.*)\]\s";
             const string dateTimeFormat = @"dd\/MMM\/yyyy\:HH\:mm\:ss zzz";
 
             var regex = new Regex(logPattern, RegexOptions.Compiled);
+
+            var pStart = (periodStart ?? DateTime.MinValue).Date;
+            var pEnd = (periodEnd ?? DateTime.MinValue).Date;
+            if (pStart > pEnd) throw new ArgumentException("periodStart must be earlier thand periodEnd.");
 
             var rawLogLines = File.ReadLines(path);
             foreach (var line in rawLogLines)
@@ -41,6 +47,9 @@ namespace AccessLogAnalyzer
                 var match = regex.Match(line);
                 var host = match.Groups[1].Value;
                 var dateTime = DateTime.ParseExact(match.Groups[2].Value, dateTimeFormat, DateTimeFormatInfo.InvariantInfo);
+
+                // 集計期間内かをチェック
+                if (dateTime.Date < pStart.Date || pEnd.Date < dateTime.Date) continue;
 
                 // 時間帯ごとの集計
                 if (!_CountHour.ContainsKey(dateTime.Date))
