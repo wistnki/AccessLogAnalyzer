@@ -37,7 +37,7 @@ namespace AccessLogAnalyzer
             var regex = new Regex(logPattern, RegexOptions.Compiled);
 
             var pStart = (periodStart ?? DateTime.MinValue).Date;
-            var pEnd = (periodEnd ?? DateTime.MinValue).Date;
+            var pEnd = (periodEnd ?? DateTime.MaxValue).Date;
             if (pStart > pEnd) throw new ArgumentException("periodStart must be earlier thand periodEnd.");
 
             var rawLogLines = File.ReadLines(path);
