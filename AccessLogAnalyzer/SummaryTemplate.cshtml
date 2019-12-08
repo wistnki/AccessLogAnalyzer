@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script src="Chart.min.js"></script>
+    <title>集計結果</title>
+    <style>
+        #chart_container {
+            width: 800px;
+            height: 400px;
+        }
+
+        table,
+        td,
+        th {
+            border-collapse: collapse;
+            border: 2px solid #333;
+        }
+
+        td,
+        th {
+            padding: 0.3em;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>時間帯ごとの集計</h1>
+    <div id="chart_containter">
+        <canvas id="ByTimeChart"></canvas>
+    </div>
+    <h1>ホストごとの集計</h1>
+    <table>
+        <tr>
+            <th>ホスト名</th>
+            <th>アクセス回数</th>
+        </tr>
+        @foreach(var kv in Model.CountByHost) {
+        <tr>
+            <td>
+                @kv.Key
+            </td>
+            <td>
+                @kv.Value
+            </td>
+        </tr>
+        }
+    </table>
+    <script>
+        var ctx = document.getElementById('ByTimeChart').getContext('2d');
+
+        var labels = [
+        @foreach(var label in Model.CountByHour.Keys) {
+            <text>"</text>@label<text>",</text>
+        }
+        ];
+        var data = [
+        @foreach(var value in Model.CountByHour.Values) {
+            @value<text>,</text>
+        }
+        ];
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'アクセス回数',
+                    data: data,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    </script>
+    </table>
+</body>
+
+</html>

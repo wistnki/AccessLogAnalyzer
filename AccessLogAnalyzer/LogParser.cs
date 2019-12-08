@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Globalization;
+
+using RazorEngine;
+using RazorEngine.Templating;
 
 namespace AccessLogAnalyzer
 {
@@ -12,14 +16,9 @@ namespace AccessLogAnalyzer
     /// </summary>
     public class LogParser
     {
-        // 時間帯ごとのアクセス回数
-        // _CountHour[Date][Hour]
-        private Dictionary<DateTime, uint[]> _CountHour
-            = new Dictionary<DateTime, uint[]>();
+        public ReadOnlyDictionary<string, uint> CountByHour { get; private set; }
 
-        // ホスト名ごとのアクセス回数
-        private Dictionary<string, uint> _CountHost
-            = new Dictionary<string, uint>();
+        public ReadOnlyDictionary<string, uint> CountByHost { get; private set; }
 
         /// <summary>
         /// ログファイルを読み取って集計します。
@@ -33,6 +32,12 @@ namespace AccessLogAnalyzer
         {
             const string logPattern = @"(.*?)\s.*?\s\[(.*)\]\s";
             const string dateTimeFormat = @"dd\/MMM\/yyyy\:HH\:mm\:ss zzz";
+
+            // 時間帯ごとのアクセス回数(_CountHour[Date][Hour])
+            Dictionary<DateTime, uint[]> _CountHour = new Dictionary<DateTime, uint[]>();
+
+            // ホスト名ごとのアクセス回数
+            Dictionary<string, uint> _CountHost = new Dictionary<string, uint>();
 
             var regex = new Regex(logPattern, RegexOptions.Compiled);
 
@@ -65,6 +70,21 @@ namespace AccessLogAnalyzer
                     _CountHost[host]++;
                 }
 
+                // 集計結果をプロパティに格納
+                var dicDate = new Dictionary<string, uint>();
+                foreach (var kv in _CountHour.OrderBy(k => k.Key))
+                {
+                    for (int i = 0; i < kv.Value.Length; i++)
+                    {
+                        dicDate.Add($@"{kv.Key:yyyy/MM/dd} {i:D2}", kv.Value[i]);
+                    }
+                }
+                CountByHour = new ReadOnlyDictionary<string, uint>(dicDate);
+
+                CountByHost = new ReadOnlyDictionary<string, uint>(_CountHost
+                    .OrderByDescending(kv => kv.Value)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value));
+
             }
             catch (Exception e)
             {
@@ -72,6 +92,18 @@ namespace AccessLogAnalyzer
                 return;
             }
 
+        }
+
+        /// <summary>
+        /// 集計結果をHTMLで出力します。
+        /// </summary>
+        /// <param name="path">集計ファイルのパス</param>
+        /// <param name="templatePath">テンプレートファイルのパス</param>
+        public void OutputSummary(string path, string templatePath)
+        {
+            var template = File.ReadAllText(templatePath);
+            string html = Engine.Razor.RunCompile(template, "templateKey", null, this);
+            File.WriteAllText(path, html);
         }
 
         /// <summary>
@@ -84,12 +116,9 @@ namespace AccessLogAnalyzer
             {
                 using (var writer = new StreamWriter(path))
                 {
-                    foreach (var count in _CountHour.OrderBy(kv => kv.Key))
+                    foreach (var count in CountByHour)
                     {
-                        for (int i = 0; i < 24; i++)
-                        {
-                            writer.WriteLine($@"{count.Key:yyyy/MM/dd} {i:D2},{count.Value[i]}");
-                        }
+                        writer.WriteLine($@"{count.Key},{count.Value}");
                     }
                 }
             }
@@ -107,10 +136,9 @@ namespace AccessLogAnalyzer
         {
             try
             {
-
                 using (var writer = new StreamWriter(path))
                 {
-                    foreach (var count in _CountHost.OrderByDescending(kv => kv.Value))
+                    foreach (var count in CountByHost)
                     {
                         writer.WriteLine($@"{count.Key},{count.Value}");
                     }
