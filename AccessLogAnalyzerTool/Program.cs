@@ -75,7 +75,10 @@ namespace AccessLogAnalyzer
         {
             usageBuilder.Summary = "Apache のアクセスログを集計して、時間帯ごともしくはホストごとのアクセス数を出力します。";
             usageBuilder.AddUseCase(usageBuilder.NewUseCase()
-                .AddArg(usageBuilder.NewUseCaseArg("OPTION").AsOptional())
+                .AddArg(usageBuilder.NewUseCaseArg("-t").Value("ByHourSummaryFileName"))
+                .AddArg(usageBuilder.NewUseCaseArg("-h").Value("ByHostSummaryFileName"))
+                .AddArg(usageBuilder.NewUseCaseArg("-s").Value("StartDate").AsOptional())
+                .AddArg(usageBuilder.NewUseCaseArg("-e").Value("EndDate").AsOptional())
                 .AddArg(usageBuilder.NewUseCaseArg("INPUT").AsMultiple()));
 
             Console.WriteLine(usageBuilder.ToString());
