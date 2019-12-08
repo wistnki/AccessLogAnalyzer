@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.902
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessLogAnalyzerCore", "AccessLogAnalyzer\AccessLogAnalyzerCore.csproj", "{1BC5D1D3-B4B9-4B56-AE6C-9393EED14654}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AccessLogAnalyzerTool", "AccessLogAnalyzerTool\AccessLogAnalyzerTool.csproj", "{F64DAB11-C72B-4989-8B56-61E4B72F9367}"
 EndProject
 Global
@@ -13,10 +11,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1BC5D1D3-B4B9-4B56-AE6C-9393EED14654}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1BC5D1D3-B4B9-4B56-AE6C-9393EED14654}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1BC5D1D3-B4B9-4B56-AE6C-9393EED14654}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1BC5D1D3-B4B9-4B56-AE6C-9393EED14654}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F64DAB11-C72B-4989-8B56-61E4B72F9367}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F64DAB11-C72B-4989-8B56-61E4B72F9367}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F64DAB11-C72B-4989-8B56-61E4B72F9367}.Release|Any CPU.ActiveCfg = Release|Any CPU
