@@ -40,27 +40,38 @@ namespace AccessLogAnalyzer
             var pEnd = (periodEnd ?? DateTime.MaxValue).Date;
             if (pStart > pEnd) throw new ArgumentException("periodStart must be earlier thand periodEnd.");
 
-            var rawLogLines = File.ReadLines(path);
-            foreach (var line in rawLogLines)
+            try
             {
-                // 読み込み
-                var match = regex.Match(line);
-                var host = match.Groups[1].Value;
-                var dateTime = DateTime.ParseExact(match.Groups[2].Value, dateTimeFormat, DateTimeFormatInfo.InvariantInfo);
+                var rawLogLines = File.ReadLines(path);
 
-                // 集計期間内かをチェック
-                if (dateTime.Date < pStart.Date || pEnd.Date < dateTime.Date) continue;
+                foreach (var line in rawLogLines)
+                {
+                    // 読み込み
+                    var match = regex.Match(line);
+                    var host = match.Groups[1].Value;
+                    var dateTime = DateTime.ParseExact(match.Groups[2].Value, dateTimeFormat, DateTimeFormatInfo.InvariantInfo);
 
-                // 時間帯ごとの集計
-                if (!_CountHour.ContainsKey(dateTime.Date))
-                    _CountHour[dateTime.Date] = new uint[24];
-                _CountHour[dateTime.Date][dateTime.Hour]++;
+                    // 集計期間内かをチェック
+                    if (dateTime.Date < pStart.Date || pEnd.Date < dateTime.Date) continue;
 
-                // ホストごとの集計
-                if (!_CountHost.ContainsKey(host))
-                    _CountHost[host] = 0;
-                _CountHost[host]++;
+                    // 時間帯ごとの集計
+                    if (!_CountHour.ContainsKey(dateTime.Date))
+                        _CountHour[dateTime.Date] = new uint[24];
+                    _CountHour[dateTime.Date][dateTime.Hour]++;
+
+                    // ホストごとの集計
+                    if (!_CountHost.ContainsKey(host))
+                        _CountHost[host] = 0;
+                    _CountHost[host]++;
+                }
+
             }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{path} の読み込み時にエラーが発生しました。");
+                return;
+            }
+
         }
 
         /// <summary>
@@ -69,15 +80,22 @@ namespace AccessLogAnalyzer
         /// <param name="path">集計ファイルのパス</param>
         public void OutputSummaryByHour(string path)
         {
-            using (var writer = new StreamWriter(path))
+            try
             {
-                foreach (var count in _CountHour.OrderBy(kv => kv.Key))
+                using (var writer = new StreamWriter(path))
                 {
-                    for (int i = 0; i < 24; i++)
+                    foreach (var count in _CountHour.OrderBy(kv => kv.Key))
                     {
-                        writer.WriteLine($@"{count.Key:yyyy/MM/dd} {i:D2},{count.Value[i]}");
+                        for (int i = 0; i < 24; i++)
+                        {
+                            writer.WriteLine($@"{count.Key:yyyy/MM/dd} {i:D2},{count.Value[i]}");
+                        }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{path} の書き込み時にエラーが発生しました。\nファイルが使用中であるか書き込み禁止になっている可能性があります。");
             }
         }
 
@@ -87,12 +105,20 @@ namespace AccessLogAnalyzer
         /// <param name="path">集計ファイルのパス</param>
         public void OutputSummaryByHost(string path)
         {
-            using (var writer = new StreamWriter(path))
+            try
             {
-                foreach (var count in _CountHost.OrderByDescending(kv => kv.Value))
+
+                using (var writer = new StreamWriter(path))
                 {
-                    writer.WriteLine($@"{count.Key},{count.Value}");
+                    foreach (var count in _CountHost.OrderByDescending(kv => kv.Value))
+                    {
+                        writer.WriteLine($@"{count.Key},{count.Value}");
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"{path} の書き込み時にエラーが発生しました。\nファイルが使用中であるか書き込み禁止になっている可能性があります。");
             }
         }
     }
