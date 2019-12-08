@@ -16,9 +16,25 @@ namespace AccessLogAnalyzer
     /// </summary>
     public class LogParser
     {
+        private const string logPattern = @"(.*?)\s.*?\s\[(.*)\]\s";
+        private const string dateTimeFormat = @"dd\/MMM\/yyyy\:HH\:mm\:ss zzz";
+
+        /// <summary>
+        /// 時間帯ごとのアクセス回数を取得します。
+        /// </summary>
         public ReadOnlyDictionary<string, uint> CountByHour { get; private set; }
 
+        /// <summary>
+        /// ホストごとのアクセス回数を取得します。
+        /// </summary>
         public ReadOnlyDictionary<string, uint> CountByHost { get; private set; }
+
+
+        // 時間帯ごとのアクセス回数(_CountHour[Date][Hour])
+        Dictionary<DateTime, uint[]> _CountHour = new Dictionary<DateTime, uint[]>();
+
+        // ホスト名ごとのアクセス回数
+        Dictionary<string, uint> _CountHost = new Dictionary<string, uint>();
 
         /// <summary>
         /// ログファイルを読み取って集計します。
@@ -28,23 +44,43 @@ namespace AccessLogAnalyzer
         /// <param name="path">ログファイルのパス</param>
         /// <param name="periodStart">集計対象の期間の最初の日</param>
         /// <param name="periodEnd">集計対象の期間の最後の日</param>
-        public void Parse(string path, DateTime? periodStart = null, DateTime? periodEnd = null)
+        public void Parse(IEnumerable<string> paths, DateTime? periodStart = null, DateTime? periodEnd = null)
         {
-            const string logPattern = @"(.*?)\s.*?\s\[(.*)\]\s";
-            const string dateTimeFormat = @"dd\/MMM\/yyyy\:HH\:mm\:ss zzz";
-
-            // 時間帯ごとのアクセス回数(_CountHour[Date][Hour])
-            Dictionary<DateTime, uint[]> _CountHour = new Dictionary<DateTime, uint[]>();
-
-            // ホスト名ごとのアクセス回数
-            Dictionary<string, uint> _CountHost = new Dictionary<string, uint>();
-
             var regex = new Regex(logPattern, RegexOptions.Compiled);
 
             var pStart = (periodStart ?? DateTime.MinValue).Date;
             var pEnd = (periodEnd ?? DateTime.MaxValue).Date;
             if (pStart > pEnd) throw new ArgumentException("periodStart must be earlier thand periodEnd.");
 
+            foreach (var path in paths)
+            {
+                Parse(path, regex, pStart, pEnd);
+            }
+
+            // 集計結果をプロパティに格納
+            var dicDate = new Dictionary<string, uint>();
+            foreach (var kv in _CountHour.OrderBy(k => k.Key))
+            {
+                for (int i = 0; i < kv.Value.Length; i++)
+                {
+                    dicDate.Add($@"{kv.Key:yyyy/MM/dd} {i:D2}", kv.Value[i]);
+                }
+            }
+            CountByHour = new ReadOnlyDictionary<string, uint>(dicDate);
+
+            CountByHost = new ReadOnlyDictionary<string, uint>(_CountHost
+                .OrderByDescending(kv => kv.Value)
+                .ToDictionary(kv => kv.Key, kv => kv.Value));
+        }
+
+        /// <summary>
+        /// ログファイルを読み取って集計します。
+        /// </summary>
+        /// <param name="path">ログファイルのパス</param>
+        /// <param name="pStart">集計対象の期間の最初の日</param>
+        /// <param name="pEnd">集計対象の期間の最後の日</param>
+        private void Parse(string path, Regex regex, DateTime pStart, DateTime pEnd)
+        {
             try
             {
                 var rawLogLines = File.ReadLines(path);
@@ -57,7 +93,8 @@ namespace AccessLogAnalyzer
                     var dateTime = DateTime.ParseExact(match.Groups[2].Value, dateTimeFormat, DateTimeFormatInfo.InvariantInfo);
 
                     // 集計期間内かをチェック
-                    if (dateTime.Date < pStart.Date || pEnd.Date < dateTime.Date) continue;
+                    if (dateTime.Date < pStart.Date || pEnd.Date < dateTime.Date)
+                        continue;
 
                     // 時間帯ごとの集計
                     if (!_CountHour.ContainsKey(dateTime.Date))
@@ -69,22 +106,6 @@ namespace AccessLogAnalyzer
                         _CountHost[host] = 0;
                     _CountHost[host]++;
                 }
-
-                // 集計結果をプロパティに格納
-                var dicDate = new Dictionary<string, uint>();
-                foreach (var kv in _CountHour.OrderBy(k => k.Key))
-                {
-                    for (int i = 0; i < kv.Value.Length; i++)
-                    {
-                        dicDate.Add($@"{kv.Key:yyyy/MM/dd} {i:D2}", kv.Value[i]);
-                    }
-                }
-                CountByHour = new ReadOnlyDictionary<string, uint>(dicDate);
-
-                CountByHost = new ReadOnlyDictionary<string, uint>(_CountHost
-                    .OrderByDescending(kv => kv.Value)
-                    .ToDictionary(kv => kv.Key, kv => kv.Value));
-
             }
             catch (Exception e)
             {

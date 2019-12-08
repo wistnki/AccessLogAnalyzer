@@ -86,8 +86,7 @@ namespace AccessLogAnalyzer
 
             // ログを解析
             var logParser = new LogParser();
-            foreach (var input in parsedCmd.CommandParameters)
-                logParser.Parse(input);
+            logParser.Parse(parsedCmd.CommandParameters, pStart, pEnd);
 
             // 結果の出力
             if (parsedCmd.HasOption('o')) logParser.OutputSummary(parsedCmd.GetOptionValue('o'), SummaryTemplatePath);
